@@ -1,0 +1,260 @@
+/* ── Overlay ──────────────────────────────────────────────── */
+#rearrange_overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: rgba(0, 0, 0, 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    box-sizing: border-box;
+}
+
+/* ── Panel ─────────────────────────────────────────────────── */
+#rearrange_panel {
+    background: var(--SmartThemeBlurTintColor, #1a1a2e);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(255,255,255,0.12));
+    border-radius: 8px;
+    width: min(600px, 100%);
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+
+/* ── Header ────────────────────────────────────────────────── */
+#rearrange_header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, rgba(255,255,255,0.12));
+    font-size: 1.05em;
+    font-weight: 600;
+    color: var(--SmartThemeBodyColor, #ddd);
+    flex-shrink: 0;
+}
+
+#rearrange_header i {
+    color: var(--SmartThemeQuoteColor, #9b8fd8);
+    font-size: 1em;
+}
+
+#rearrange_header span {
+    flex: 1;
+}
+
+.rearrange-icon-btn {
+    background: none;
+    border: none;
+    color: var(--SmartThemeBodyColor, #aaa);
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 4px;
+    font-size: 1em;
+    line-height: 1;
+    opacity: 0.7;
+    transition: opacity 0.15s, background 0.15s;
+}
+
+.rearrange-icon-btn:hover {
+    opacity: 1;
+    background: rgba(255,255,255,0.08);
+}
+
+/* ── Hint ──────────────────────────────────────────────────── */
+#rearrange_hint {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    font-size: 0.82em;
+    color: var(--SmartThemeBodyColor, #aaa);
+    opacity: 0.75;
+    flex-shrink: 0;
+}
+
+#rearrange_hint i {
+    font-size: 0.9em;
+    flex-shrink: 0;
+}
+
+/* ── Scrollable list ───────────────────────────────────────── */
+#rearrange_list {
+    list-style: none;
+    margin: 0;
+    padding: 6px 8px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.2) transparent;
+}
+
+#rearrange_list::-webkit-scrollbar {
+    width: 6px;
+}
+
+#rearrange_list::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.2);
+    border-radius: 3px;
+}
+
+/* ── Message row ───────────────────────────────────────────── */
+.rearrange-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 8px;
+    margin: 2px 0;
+    border-radius: 6px;
+    cursor: default;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid transparent;
+    transition: background 0.1s, border-color 0.1s;
+    user-select: none;
+    min-width: 0;
+}
+
+.rearrange-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255,255,255,0.08);
+}
+
+/* Role color accents */
+.rearrange-user {
+    border-left: 3px solid var(--SmartThemeUserMesBlurColor, #5577aa) !important;
+}
+
+.rearrange-char {
+    border-left: 3px solid var(--SmartThemeBotMesBlurColor, #7a5ea7) !important;
+}
+
+.rearrange-system {
+    border-left: 3px solid rgba(255,255,255,0.25) !important;
+    opacity: 0.7;
+}
+
+/* Drag handle */
+.rearrange-handle {
+    flex-shrink: 0;
+    color: rgba(255,255,255,0.3);
+    cursor: grab;
+    font-size: 0.9em;
+    padding: 0 2px;
+    transition: color 0.15s;
+}
+
+.rearrange-handle:hover,
+.rearrange-item:hover .rearrange-handle {
+    color: rgba(255,255,255,0.7);
+}
+
+.rearrange-handle:active {
+    cursor: grabbing;
+}
+
+/* Role icon */
+.rearrange-role-icon {
+    flex-shrink: 0;
+    font-size: 0.8em;
+    width: 16px;
+    text-align: center;
+    opacity: 0.6;
+}
+
+.rearrange-user .rearrange-role-icon {
+    color: var(--SmartThemeUserMesBlurColor, #5577aa);
+    opacity: 0.9;
+}
+
+.rearrange-char .rearrange-role-icon {
+    color: var(--SmartThemeBotMesBlurColor, #9b8fd8);
+    opacity: 0.9;
+}
+
+/* Name */
+.rearrange-name {
+    flex-shrink: 0;
+    font-weight: 600;
+    font-size: 0.88em;
+    color: var(--SmartThemeBodyColor, #ddd);
+    min-width: 60px;
+    max-width: 120px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Preview */
+.rearrange-preview {
+    flex: 1;
+    font-size: 0.82em;
+    color: var(--SmartThemeBodyColor, #aaa);
+    opacity: 0.7;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+/* Index badge */
+.rearrange-index {
+    flex-shrink: 0;
+    font-size: 0.72em;
+    color: rgba(255,255,255,0.3);
+    font-variant-numeric: tabular-nums;
+    min-width: 28px;
+    text-align: right;
+}
+
+/* ── Drag placeholder ──────────────────────────────────────── */
+.rearrange-placeholder {
+    background: rgba(155, 143, 216, 0.12);
+    border: 1px dashed rgba(155, 143, 216, 0.5);
+    border-radius: 6px;
+    margin: 2px 0;
+    list-style: none;
+}
+
+/* ── Sortable dragging state ───────────────────────────────── */
+.rearrange-item.ui-sortable-helper {
+    background: var(--SmartThemeBlurTintColor, #1a1a2e) !important;
+    border-color: rgba(155, 143, 216, 0.6) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    opacity: 1 !important;
+    z-index: 10001;
+}
+
+/* ── Footer ────────────────────────────────────────────────── */
+#rearrange_footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-top: 1px solid var(--SmartThemeBorderColor, rgba(255,255,255,0.12));
+    flex-shrink: 0;
+    gap: 8px;
+}
+
+.rearrange-footer-right {
+    display: flex;
+    gap: 8px;
+}
+
+#rearrange_apply.menu_button {
+    background: var(--SmartThemeQuoteColor, #7a5ea7);
+    color: #fff;
+}
+
+#rearrange_apply.menu_button:hover:not(:disabled) {
+    background: #9b8fd8;
+    filter: none;
+}
+
+#rearrange_apply:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
