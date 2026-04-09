@@ -1,3 +1,4 @@
+import { extension_settings } from "../../../extensions.js";
 import {
     eventSource,
     event_types,
@@ -5,9 +6,11 @@ import {
     chat_metadata,
     chatElement,
     isGenerating,
+    getCurrentChatId,
     updateViewMessageIds,
     refreshSwipeButtons,
     saveChatConditional,
+    saveSettingsDebounced,
 } from "../../../../script.js";
 import {
     swapItemizedPrompts,
@@ -24,7 +27,20 @@ function escapeHtml(str) {
         .replace(/"/g, "&quot;");
 }
 
+function hasCollapseExtension() {
+    const s = extension_settings["collapse-messages"];
+    return s != null && s.collapsed != null;
+}
+
+function isMessageCollapsed(mesId) {
+    const chatId = getCurrentChatId();
+    if (!chatId) return false;
+    const arr = extension_settings["collapse-messages"]?.collapsed?.[chatId];
+    return Array.isArray(arr) && arr.includes(mesId);
+}
+
 function buildListHtml() {
+    const showCollapse = hasCollapseExtension();
     return chat
         .map((msg, idx) => {
             const name = escapeHtml(
@@ -42,9 +58,7 @@ function buildListHtml() {
             // data-system stores the pending is_system value
             const eyeIcon = isSystem ? "fa-eye-slash" : "fa-eye";
             const eyeTitle = isSystem ? "Excluded from prompt — click to include" : "Included in prompt — click to exclude";
-            const eyeBtn = isUser
-                ? `<span class="rearrange-eye-btn fa-solid fa-eye rearrange-eye-user" title="User messages are always included"></span>`
-                : `<button class="rearrange-eye-btn fa-solid ${eyeIcon}" data-system="${isSystem}" title="${eyeTitle}"></button>`;
+            const eyeBtn = `<button class="rearrange-eye-btn fa-solid ${eyeIcon}" data-system="${isSystem}" title="${eyeTitle}"></button>`;
             return `<li class="rearrange-item ${roleClass}" data-mesid="${idx}">
                 <span class="rearrange-handle fa-solid fa-grip-vertical" title="Drag to reorder"></span>
                 <span class="rearrange-role-icon fa-solid ${roleIcon}"></span>
@@ -52,6 +66,10 @@ function buildListHtml() {
                 <span class="rearrange-name">${name}</span>
                 <span class="rearrange-preview">${preview}${ellipsis}</span>
                 <span class="rearrange-index">#${idx}</span>
+                ${showCollapse ? (() => {
+                    const collapsed = isMessageCollapsed(idx);
+                    return `<button class="rearrange-collapse-btn fa-solid ${collapsed ? "fa-expand" : "fa-compress"}" data-collapsed="${collapsed}" title="${collapsed ? "Collapsed — click to expand" : "Expanded — click to collapse"}"></button>`;
+                })() : ""}
                 <button class="rearrange-delete-btn fa-solid fa-trash" title="Mark for deletion"></button>
             </li>`;
         })
@@ -77,7 +95,6 @@ function bindTypeButtons(container) {
     container.on("click", ".rearrange-eye-btn", function (e) {
         e.stopPropagation();
         const btn = $(this);
-        if (btn.hasClass("rearrange-eye-user")) return; // user messages: no-op
         const item = btn.closest(".rearrange-item");
         const wasSystem = btn.data("system") === true || btn.data("system") === "true";
         const nowSystem = !wasSystem;
@@ -90,6 +107,19 @@ function bindTypeButtons(container) {
         item
             .toggleClass("rearrange-system", nowSystem)
             .toggleClass("rearrange-char", !nowSystem);
+    });
+}
+
+function bindCollapseButtons(container) {
+    container.on("click", ".rearrange-collapse-btn", function (e) {
+        e.stopPropagation();
+        const btn = $(this);
+        const wasCollapsed = btn.data("collapsed") === true || btn.data("collapsed") === "true";
+        const nowCollapsed = !wasCollapsed;
+        btn.data("collapsed", nowCollapsed)
+            .toggleClass("fa-expand", nowCollapsed)
+            .toggleClass("fa-compress", !nowCollapsed)
+            .attr("title", nowCollapsed ? "Collapsed — click to expand" : "Expanded — click to collapse");
     });
 }
 
@@ -130,7 +160,7 @@ function openRearrangePanel() {
                 </div>
                 <div id="rearrange_hint">
                     <i class="fa-solid fa-circle-info"></i>
-                    Drag to reorder. <i class="fa-solid fa-eye"></i> toggles prompt inclusion. <i class="fa-solid fa-trash"></i> marks for deletion.
+                    Drag to reorder. <i class="fa-solid fa-eye"></i> prompt. <i class="fa-solid fa-compress"></i> collapse. <i class="fa-solid fa-trash"></i> delete.
                 </div>
                 <ul id="rearrange_list">${buildListHtml()}</ul>
                 <div id="rearrange_footer">
@@ -148,6 +178,7 @@ function openRearrangePanel() {
 
     makeSortable();
     bindTypeButtons($("#rearrange_list"));
+    bindCollapseButtons($("#rearrange_list"));
     bindDeleteButtons($("#rearrange_list"));
 
     $("#rearrange_close, #rearrange_cancel").on("click", closeRearrangePanel);
@@ -162,6 +193,7 @@ function openRearrangePanel() {
         list.html(buildListHtml());
         makeSortable();
         bindTypeButtons(list);
+        bindCollapseButtons(list);
         bindDeleteButtons(list);
     });
 
@@ -354,14 +386,51 @@ async function applyRearrange() {
     // Walk the (non-deleted) panel rows in their final order to read pending flips.
     let typeChanged = 0;
     $("#rearrange_list .rearrange-item:not(.rearrange-deleted)").each(function (finalIdx) {
-        const btn = $(this).find(".rearrange-eye-btn:not(.rearrange-eye-user)");
-        if (!btn.length) return; // user messages have no toggle button
+        const btn = $(this).find(".rearrange-eye-btn");
+        if (!btn.length) return;
         const pendingSystem = btn.data("system") === true || btn.data("system") === "true";
         if (chat[finalIdx].is_system !== pendingSystem) {
             chat[finalIdx].is_system = pendingSystem;
+            chatElement.find(`.mes[mesid="${finalIdx}"]`).attr("is_system", String(pendingSystem));
             typeChanged++;
         }
     });
+
+    // ── Step 5: apply collapse state changes (if collapse-messages is active) ─
+    if (hasCollapseExtension()) {
+        const chatId = getCurrentChatId();
+        if (chatId) {
+            const collapseSettings = extension_settings["collapse-messages"];
+            if (!collapseSettings.collapsed[chatId]) collapseSettings.collapsed[chatId] = [];
+            const arr = collapseSettings.collapsed[chatId];
+
+            $("#rearrange_list .rearrange-item:not(.rearrange-deleted)").each(function (finalIdx) {
+                const btn = $(this).find(".rearrange-collapse-btn");
+                if (!btn.length) return;
+
+                const pendingCollapsed = btn.data("collapsed") === true || btn.data("collapsed") === "true";
+                const currentlyCollapsed = arr.includes(finalIdx);
+
+                if (pendingCollapsed === currentlyCollapsed) return;
+
+                if (pendingCollapsed) {
+                    arr.push(finalIdx);
+                } else {
+                    arr.splice(arr.indexOf(finalIdx), 1);
+                }
+
+                // Update the live message visuals
+                const mesEl = chatElement.find(`.mes[mesid="${finalIdx}"]`);
+                mesEl.find(".mes_text").toggleClass("mes_text_collapsed", pendingCollapsed);
+                mesEl.find(".mes_collapse_btn")
+                    .toggleClass("fa-compress", !pendingCollapsed)
+                    .toggleClass("fa-expand", pendingCollapsed)
+                    .attr("title", pendingCollapsed ? "Expand message" : "Collapse message");
+            });
+
+            saveSettingsDebounced();
+        }
+    }
 
     updateViewMessageIds();
     refreshSwipeButtons();
