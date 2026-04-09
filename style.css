@@ -210,6 +210,21 @@
     text-align: right;
 }
 
+/* Type toggle button (gear ↔ robot) */
+.rearrange-type-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 3px;
+    border-radius: 3px;
+    transition: color 0.15s, background 0.15s;
+}
+
+.rearrange-type-btn:hover {
+    background: rgba(255,255,255,0.1);
+    opacity: 1 !important;
+}
+
 /* Delete button */
 .rearrange-delete-btn {
     flex-shrink: 0;

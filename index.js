@@ -33,19 +33,17 @@ function buildListHtml() {
             const rawText = (msg.mes || "").replace(/<[^>]+>/g, "").trim();
             const preview = escapeHtml(rawText.substring(0, 100));
             const ellipsis = rawText.length > 100 ? "…" : "";
-            const roleClass = msg.is_user
-                ? "rearrange-user"
-                : msg.is_system
-                ? "rearrange-system"
-                : "rearrange-char";
-            const roleIcon = msg.is_user
-                ? "fa-user"
-                : msg.is_system
-                ? "fa-gear"
-                : "fa-robot";
+            const isUser = !!msg.is_user;
+            const isSystem = !!msg.is_system;
+            const roleClass = isUser ? "rearrange-user" : isSystem ? "rearrange-system" : "rearrange-char";
+            const roleIcon = isUser ? "fa-user" : isSystem ? "fa-gear" : "fa-robot";
+            // data-system stores the pending is_system value (may differ from original after toggling)
+            const iconEl = isUser
+                ? `<span class="rearrange-role-icon fa-solid ${roleIcon}"></span>`
+                : `<button class="rearrange-role-icon rearrange-type-btn fa-solid ${roleIcon}" data-system="${isSystem}" title="Toggle system/character"></button>`;
             return `<li class="rearrange-item ${roleClass}" data-mesid="${idx}">
                 <span class="rearrange-handle fa-solid fa-grip-vertical" title="Drag to reorder"></span>
-                <span class="rearrange-role-icon fa-solid ${roleIcon}"></span>
+                ${iconEl}
                 <span class="rearrange-name">${name}</span>
                 <span class="rearrange-preview">${preview}${ellipsis}</span>
                 <span class="rearrange-index">#${idx}</span>
@@ -67,6 +65,23 @@ function makeSortable() {
         start(_, ui) {
             ui.placeholder.height(ui.item.outerHeight());
         },
+    });
+}
+
+function bindTypeButtons(container) {
+    container.on("click", ".rearrange-type-btn", function (e) {
+        e.stopPropagation();
+        const btn = $(this);
+        const item = btn.closest(".rearrange-item");
+        const nowSystem = btn.data("system") === true || btn.data("system") === "true";
+        const flip = !nowSystem;
+        btn.data("system", flip)
+            .toggleClass("fa-gear", flip)
+            .toggleClass("fa-robot", !flip)
+            .attr("title", "Toggle system/character");
+        item
+            .toggleClass("rearrange-system", flip)
+            .toggleClass("rearrange-char", !flip);
     });
 }
 
@@ -124,6 +139,7 @@ function openRearrangePanel() {
     $("body").append(panel);
 
     makeSortable();
+    bindTypeButtons($("#rearrange_list"));
     bindDeleteButtons($("#rearrange_list"));
 
     $("#rearrange_close, #rearrange_cancel").on("click", closeRearrangePanel);
@@ -137,6 +153,7 @@ function openRearrangePanel() {
         if (list.data("ui-sortable")) list.sortable("destroy");
         list.html(buildListHtml());
         makeSortable();
+        bindTypeButtons(list);
         bindDeleteButtons(list);
     });
 
@@ -144,11 +161,12 @@ function openRearrangePanel() {
         const btn = $("#rearrange_apply");
         btn.prop("disabled", true).text("Applying…");
         try {
-            const { deleted, reordered } = await applyRearrange();
+            const { deleted, reordered, typeChanged } = await applyRearrange();
             closeRearrangePanel();
             const parts = [];
-            if (deleted > 0) parts.push(`${deleted} message${deleted > 1 ? "s" : ""} deleted`);
-            if (reordered) parts.push("messages reordered");
+            if (deleted > 0) parts.push(`${deleted} deleted`);
+            if (reordered) parts.push("reordered");
+            if (typeChanged > 0) parts.push(`${typeChanged} type${typeChanged > 1 ? "s" : ""} changed`);
             toastr.success(parts.length ? parts.join(", ") + "." : "No changes.");
         } catch (err) {
             console.error(`[${extensionName}] Error:`, err);
@@ -323,11 +341,25 @@ async function applyRearrange() {
         }
     }
 
+    // ── Step 4: apply any is_system flips ──────────────────────────────────
+    // After deletions + reorder, the surviving items are now at their final mesids.
+    // Walk the (non-deleted) panel rows in their final order to read pending flips.
+    let typeChanged = 0;
+    $("#rearrange_list .rearrange-item:not(.rearrange-deleted)").each(function (finalIdx) {
+        const btn = $(this).find(".rearrange-type-btn");
+        if (!btn.length) return; // user messages have no toggle button
+        const pendingSystem = btn.data("system") === true || btn.data("system") === "true";
+        if (chat[finalIdx].is_system !== pendingSystem) {
+            chat[finalIdx].is_system = pendingSystem;
+            typeChanged++;
+        }
+    });
+
     updateViewMessageIds();
     refreshSwipeButtons();
     await saveChatConditional();
 
-    return { deleted: sortedDeletes.length, reordered: !unchanged };
+    return { deleted: sortedDeletes.length, reordered: !unchanged, typeChanged };
 }
 
 // ---------------------------------------------------------------------------
