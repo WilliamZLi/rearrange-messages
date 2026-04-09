@@ -210,19 +210,32 @@
     text-align: right;
 }
 
-/* Type toggle button (gear ↔ robot) */
-.rearrange-type-btn {
+/* Eye toggle button (included ↔ excluded from prompt) */
+.rearrange-eye-btn {
+    flex-shrink: 0;
     background: none;
     border: none;
     cursor: pointer;
-    padding: 2px 3px;
+    font-size: 0.82em;
+    padding: 2px 4px;
     border-radius: 3px;
     transition: color 0.15s, background 0.15s;
+    color: rgba(255,255,255,0.45);
 }
 
-.rearrange-type-btn:hover {
+.rearrange-eye-btn.fa-eye-slash {
+    color: rgba(255, 160, 80, 0.8);
+}
+
+.rearrange-eye-btn:not(.rearrange-eye-user):hover {
     background: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.9);
     opacity: 1 !important;
+}
+
+.rearrange-eye-user {
+    cursor: default;
+    opacity: 0.25;
 }
 
 /* Delete button */

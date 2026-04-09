@@ -36,14 +36,19 @@ function buildListHtml() {
             const isUser = !!msg.is_user;
             const isSystem = !!msg.is_system;
             const roleClass = isUser ? "rearrange-user" : isSystem ? "rearrange-system" : "rearrange-char";
-            const roleIcon = isUser ? "fa-user" : isSystem ? "fa-gear" : "fa-robot";
-            // data-system stores the pending is_system value (may differ from original after toggling)
-            const iconEl = isUser
-                ? `<span class="rearrange-role-icon fa-solid ${roleIcon}"></span>`
-                : `<button class="rearrange-role-icon rearrange-type-btn fa-solid ${roleIcon}" data-system="${isSystem}" title="Toggle system/character"></button>`;
+            // Static role icon (user / character — original type, display only)
+            const roleIcon = isUser ? "fa-user" : "fa-robot";
+            // Eye button: fa-eye = included in prompt, fa-eye-slash = excluded (is_system)
+            // data-system stores the pending is_system value
+            const eyeIcon = isSystem ? "fa-eye-slash" : "fa-eye";
+            const eyeTitle = isSystem ? "Excluded from prompt — click to include" : "Included in prompt — click to exclude";
+            const eyeBtn = isUser
+                ? `<span class="rearrange-eye-btn fa-solid fa-eye rearrange-eye-user" title="User messages are always included"></span>`
+                : `<button class="rearrange-eye-btn fa-solid ${eyeIcon}" data-system="${isSystem}" title="${eyeTitle}"></button>`;
             return `<li class="rearrange-item ${roleClass}" data-mesid="${idx}">
                 <span class="rearrange-handle fa-solid fa-grip-vertical" title="Drag to reorder"></span>
-                ${iconEl}
+                <span class="rearrange-role-icon fa-solid ${roleIcon}"></span>
+                ${eyeBtn}
                 <span class="rearrange-name">${name}</span>
                 <span class="rearrange-preview">${preview}${ellipsis}</span>
                 <span class="rearrange-index">#${idx}</span>
@@ -69,19 +74,22 @@ function makeSortable() {
 }
 
 function bindTypeButtons(container) {
-    container.on("click", ".rearrange-type-btn", function (e) {
+    container.on("click", ".rearrange-eye-btn", function (e) {
         e.stopPropagation();
         const btn = $(this);
+        if (btn.hasClass("rearrange-eye-user")) return; // user messages: no-op
         const item = btn.closest(".rearrange-item");
-        const nowSystem = btn.data("system") === true || btn.data("system") === "true";
-        const flip = !nowSystem;
-        btn.data("system", flip)
-            .toggleClass("fa-gear", flip)
-            .toggleClass("fa-robot", !flip)
-            .attr("title", "Toggle system/character");
+        const wasSystem = btn.data("system") === true || btn.data("system") === "true";
+        const nowSystem = !wasSystem;
+        btn.data("system", nowSystem)
+            .toggleClass("fa-eye-slash", nowSystem)
+            .toggleClass("fa-eye", !nowSystem)
+            .attr("title", nowSystem
+                ? "Excluded from prompt — click to include"
+                : "Included in prompt — click to exclude");
         item
-            .toggleClass("rearrange-system", flip)
-            .toggleClass("rearrange-char", !flip);
+            .toggleClass("rearrange-system", nowSystem)
+            .toggleClass("rearrange-char", !nowSystem);
     });
 }
 
@@ -122,7 +130,7 @@ function openRearrangePanel() {
                 </div>
                 <div id="rearrange_hint">
                     <i class="fa-solid fa-circle-info"></i>
-                    Drag to reorder. Click <i class="fa-solid fa-trash"></i> to mark a message for deletion.
+                    Drag to reorder. <i class="fa-solid fa-eye"></i> toggles prompt inclusion. <i class="fa-solid fa-trash"></i> marks for deletion.
                 </div>
                 <ul id="rearrange_list">${buildListHtml()}</ul>
                 <div id="rearrange_footer">
@@ -346,7 +354,7 @@ async function applyRearrange() {
     // Walk the (non-deleted) panel rows in their final order to read pending flips.
     let typeChanged = 0;
     $("#rearrange_list .rearrange-item:not(.rearrange-deleted)").each(function (finalIdx) {
-        const btn = $(this).find(".rearrange-type-btn");
+        const btn = $(this).find(".rearrange-eye-btn:not(.rearrange-eye-user)");
         if (!btn.length) return; // user messages have no toggle button
         const pendingSystem = btn.data("system") === true || btn.data("system") === "true";
         if (chat[finalIdx].is_system !== pendingSystem) {
