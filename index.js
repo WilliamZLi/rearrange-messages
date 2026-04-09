@@ -68,7 +68,7 @@ function buildListHtml() {
                 <span class="rearrange-index">#${idx}</span>
                 ${showCollapse ? (() => {
                     const collapsed = isMessageCollapsed(idx);
-                    return `<button class="rearrange-collapse-btn fa-solid ${collapsed ? "fa-expand" : "fa-compress"}" data-collapsed="${collapsed}" title="${collapsed ? "Collapsed — click to expand" : "Expanded — click to collapse"}"></button>`;
+                    return `<button class="rearrange-collapse-btn fa-solid ${collapsed ? "fa-compress" : "fa-expand"}" data-collapsed="${collapsed}" title="${collapsed ? "Collapsed — click to expand" : "Expanded — click to collapse"}"></button>`;
                 })() : ""}
                 <button class="rearrange-delete-btn fa-solid fa-trash" title="Mark for deletion"></button>
             </li>`;
@@ -117,8 +117,8 @@ function bindCollapseButtons(container) {
         const wasCollapsed = btn.data("collapsed") === true || btn.data("collapsed") === "true";
         const nowCollapsed = !wasCollapsed;
         btn.data("collapsed", nowCollapsed)
-            .toggleClass("fa-expand", nowCollapsed)
-            .toggleClass("fa-compress", !nowCollapsed)
+            .toggleClass("fa-compress", nowCollapsed)
+            .toggleClass("fa-expand", !nowCollapsed)
             .attr("title", nowCollapsed ? "Collapsed — click to expand" : "Expanded — click to collapse");
     });
 }

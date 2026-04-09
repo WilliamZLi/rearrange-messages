@@ -246,7 +246,7 @@
     transition: color 0.15s, background 0.15s;
 }
 
-.rearrange-collapse-btn.fa-expand {
+.rearrange-collapse-btn.fa-compress {
     color: rgba(120, 180, 255, 0.8);
 }
 
