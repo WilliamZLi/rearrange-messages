@@ -183,9 +183,6 @@ function openRearrangePanel() {
 
     $("#rearrange_close, #rearrange_cancel").on("click", closeRearrangePanel);
 
-    $("#rearrange_overlay").on("click", function (e) {
-        if (e.target === this) closeRearrangePanel();
-    });
 
     $("#rearrange_reset").on("click", () => {
         const list = $("#rearrange_list");
