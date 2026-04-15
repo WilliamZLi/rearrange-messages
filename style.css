@@ -170,6 +170,11 @@
     opacity: 0.9;
 }
 
+.rearrange-user.rearrange-system .rearrange-role-icon {
+    color: inherit;
+    opacity: 0.4;
+}
+
 .rearrange-char .rearrange-role-icon {
     color: var(--SmartThemeBotMesBlurColor, #9b8fd8);
     opacity: 0.9;
