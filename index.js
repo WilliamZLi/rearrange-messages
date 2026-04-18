@@ -51,7 +51,7 @@ function buildListHtml() {
             const ellipsis = rawText.length > 100 ? "…" : "";
             const isUser = !!msg.is_user;
             const isSystem = !!msg.is_system;
-            const roleClass = isUser ? "rearrange-user" : isSystem ? "rearrange-system" : "rearrange-char";
+            const roleClass = isSystem ? "rearrange-system" : isUser ? "rearrange-user" : "rearrange-char";
             const dataRole = isUser ? "user" : "char";
             // Static role icon (user / character — original type, display only)
             const roleIcon = isUser ? "fa-user" : "fa-robot";
