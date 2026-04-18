@@ -52,6 +52,7 @@ function buildListHtml() {
             const isUser = !!msg.is_user;
             const isSystem = !!msg.is_system;
             const roleClass = isUser ? "rearrange-user" : isSystem ? "rearrange-system" : "rearrange-char";
+            const dataRole = isUser ? "user" : "char";
             // Static role icon (user / character — original type, display only)
             const roleIcon = isUser ? "fa-user" : "fa-robot";
             // Eye button: fa-eye = included in prompt, fa-eye-slash = excluded (is_system)
@@ -59,7 +60,7 @@ function buildListHtml() {
             const eyeIcon = isSystem ? "fa-eye-slash" : "fa-eye";
             const eyeTitle = isSystem ? "Excluded from prompt — click to include" : "Included in prompt — click to exclude";
             const eyeBtn = `<button class="rearrange-eye-btn fa-solid ${eyeIcon}" data-system="${isSystem}" title="${eyeTitle}"></button>`;
-            return `<li class="rearrange-item ${roleClass}" data-mesid="${idx}">
+            return `<li class="rearrange-item ${roleClass}" data-mesid="${idx}" data-role="${dataRole}">
                 <span class="rearrange-handle fa-solid fa-grip-vertical" title="Drag to reorder"></span>
                 <span class="rearrange-role-icon fa-solid ${roleIcon}"></span>
                 ${eyeBtn}
@@ -104,9 +105,12 @@ function bindTypeButtons(container) {
             .attr("title", nowSystem
                 ? "Excluded from prompt — click to include"
                 : "Included in prompt — click to exclude");
-        item
-            .toggleClass("rearrange-system", nowSystem)
-            .toggleClass("rearrange-char", !nowSystem);
+        if (nowSystem) {
+            item.removeClass("rearrange-user rearrange-char").addClass("rearrange-system");
+        } else {
+            const origRole = item.data("role");
+            item.removeClass("rearrange-system").addClass(origRole === "user" ? "rearrange-user" : "rearrange-char");
+        }
     });
 }
 
