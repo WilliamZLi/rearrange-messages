@@ -170,6 +170,11 @@
     opacity: 0.9;
 }
 
+.rearrange-user.rearrange-system {
+    border-left: 3px solid rgba(255,255,255,0.25) !important;
+    opacity: 0.7;
+}
+
 .rearrange-user.rearrange-system .rearrange-role-icon {
     color: inherit;
     opacity: 0.4;
