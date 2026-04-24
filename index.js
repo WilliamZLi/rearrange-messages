@@ -276,9 +276,6 @@ async function doDeleteMessage(mesId) {
 
     deleteItemizedPromptForMessage(mesId);
 
-    // Renumber DOM mesid attributes for everything after the removed message
-    updateViewMessageIds(mesId);
-
     // Fire with the real deleted id so listeners (e.g. collapse-messages)
     // correctly remove that id and decrement higher ones.
     await eventSource.emit(event_types.MESSAGE_DELETED, mesId);
